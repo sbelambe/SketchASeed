@@ -1,7 +1,8 @@
 import { Editor } from './editor.js';
 import { Screensaver } from './screensaver.js';
 
-const params = new URLSearchParams(window.location.search);
+const hash = window.location.hash.slice(1);
+const params = new URLSearchParams(hash);
 const seed = params.get('seed');
 
 if (seed) {

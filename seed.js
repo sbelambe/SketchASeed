@@ -1,17 +1,17 @@
 /**
  * Encode world data into a compact URL-safe string.
- * v2 format: { v:2, gs, os, gg, og, s, p }
- *   gs = array of ground tile pixel arrays
- *   os = array of object tile pixel arrays
- *   gg = ground grid size (8, 16, 32, 64)
- *   og = object grid size
- *   s  = sparseness (0-100)
- *   p  = palette
- *
- * v1 (legacy): single g/o arrays, no grid sizes — normalized on decode.
+ * v2 format: { v:2, gs, os, gg, og, s, p, gl?, ol? }
+ *   gs  = array of ground tile pixel arrays
+ *   os  = array of object tile pixel arrays
+ *   gg  = ground grid size (8, 16, 32, 64)
+ *   og  = object grid size
+ *   s   = sparseness (0-100)
+ *   p   = palette
+ *   gl  = groundLabels array (optional, omitted if all 'land')
+ *   ol  = objectLabels array (optional, omitted if all 'land')
  */
 
-export function encodeSeed({ groundTiles, objectTiles, groundGridSize, objectGridSize, sparseness, palette }) {
+export function encodeSeed({ groundTiles, objectTiles, groundGridSize, objectGridSize, sparseness, palette, groundLabels, objectLabels }) {
   const data = {
     v: 2,
     gs: groundTiles,
@@ -21,6 +21,9 @@ export function encodeSeed({ groundTiles, objectTiles, groundGridSize, objectGri
     s: Math.round(sparseness * 100),
     p: palette,
   };
+  if (groundLabels && groundLabels.some(l => l && l !== 'land')) data.gl = groundLabels;
+  if (objectLabels && objectLabels.some(l => l && l !== 'land')) data.ol = objectLabels;
+
   const json = JSON.stringify(data);
   const bytes = new TextEncoder().encode(json);
   let binary = '';
@@ -45,9 +48,12 @@ export function decodeSeed(seed) {
       data.og = 16;
     }
 
-    // Default grid sizes for v2 seeds that predate this field
     if (!data.gg) data.gg = 16;
     if (!data.og) data.og = 16;
+
+    // Default labels if absent
+    if (!data.gl) data.gl = data.gs.map(() => 'land');
+    if (!data.ol) data.ol = data.os.map(() => 'land');
 
     return data;
   } catch (e) {
